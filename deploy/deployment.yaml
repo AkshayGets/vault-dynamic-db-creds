@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: vault-agent-db-demo
+  namespace: vault-demo
+  labels:
+    app: vault-agent-db-demo
+
+spec:
+  replicas: 1
+
+  # Every node runs at the EKS max-pods cap (17 on these
+  # instance types, and there is no autoscaler), so the default
+  # RollingUpdate cannot place the new pod before retiring the
+  # old one and the rollout hangs in Pending. Recreate stops the
+  # old pod first: ~15s where the demo is unreachable during a
+  # deploy, which a single-replica demo can absorb.
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: vault-agent-db-demo
+
+  template:
+
+    metadata:
+      labels:
+        app: vault-agent-db-demo
+
+      annotations:
+
+        # Enable Vault Agent Injector
+        vault.hashicorp.com/agent-inject: "true"
+
+        # Authentication
+        vault.hashicorp.com/auth-path: "auth/demo-auth-mount"
+        vault.hashicorp.com/role: "vault-agent-demo"
+        vault.hashicorp.com/namespace: "my-org"
+
+        # Vault server
+        vault.hashicorp.com/service: "http://vault.vault.svc.cluster.local:8200"
+
+        # Where injected secrets will appear
+        vault.hashicorp.com/secret-volume-path: "/vault/secrets"
+
+        # Dynamic database credential
+        vault.hashicorp.com/agent-inject-secret-db-creds.json: "demo-db/creds/demo-agent-reader"
+
+        vault.hashicorp.com/agent-inject-file-db-creds.json: "db-creds.json"
+
+        vault.hashicorp.com/agent-inject-template-db-creds.json: |
+          {{- with secret "demo-db/creds/demo-agent-reader" -}}
+          {
+            "username": "{{ .Data.username }}",
+            "password": "{{ .Data.password }}",
+            "lease_id": "{{ .LeaseID }}",
+            "lease_duration": {{ .LeaseDuration }}
+          }
+          {{- end }}
+
+    spec:
+
+      serviceAccountName: vault-agent-demo
+
+      containers:
+
+        - name: vault-agent-db-demo
+
+          image: "<YOUR-REGISTRY>/vault-agent-db-demo:v1"
+
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          env:
+
+            - name: DB_HOST
+              value: "postgres-postgresql.postgres.svc.cluster.local"
+
+            - name: DB_PORT
+              value: "5432"
+
+            - name: DB_NAME
+              value: "postgres"
+
+            - name: VAULT_NAMESPACE
+              value: "my-org"
+
+            - name: VAULT_AUTH_ROLE
+              value: "vault-agent-demo"
+
+            - name: VAULT_DB_ROLE
+              value: "demo-agent-reader"
+
+            - name: KUBERNETES_SERVICE_ACCOUNT
+              value: "vault-agent-demo"
+
+            - name: KUBERNETES_NAMESPACE
+              value: "vault-demo"
+
+            - name: SECRET_FILE
+              value: "/vault/secrets/db-creds.json"
+
+            # Must match the ttl / max_ttl configured on the
+            # Vault database role demo-agent-reader. The app
+            # cannot discover these without talking to Vault,
+            # which is exactly what this variant avoids.
+            - name: VAULT_DB_TTL
+              value: "60"
+
+            - name: VAULT_DB_MAX_TTL
+              value: "300"
+
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 1
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 1
+            failureThreshold: 3
+
+      restartPolicy: Always

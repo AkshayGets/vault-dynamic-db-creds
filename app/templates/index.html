@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Vault Agent Injector DB Demo</title>
+
+    <style>
+        :root {
+            --vault: #ffca28;
+            --green: #35c759;
+            --blue: #4da3ff;
+            --purple: #a78bfa;
+            --red: #ff5c5c;
+            --bg: #0b0f14;
+            --panel: #121821;
+            --panel2: #18212c;
+            --border: #273241;
+            --text: #f2f5f8;
+            --muted: #8e9aaa;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(255, 202, 40, 0.08),
+                    transparent 35%
+                ),
+                var(--bg);
+            color: var(--text);
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        .container {
+            width: min(1200px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 36px 0 60px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .badge {
+            border: 1px solid rgba(255, 202, 40, 0.35);
+            color: var(--vault);
+            background: rgba(255, 202, 40, 0.08);
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow:
+                0 12px 35px rgba(0, 0, 0, 0.22);
+        }
+
+        .card.full {
+            grid-column: 1 / -1;
+        }
+
+        .card h2 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .card-description {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .flow {
+            display: grid;
+            grid-template-columns:
+                repeat(5, minmax(0, 1fr));
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .flow-step {
+            position: relative;
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 125px;
+        }
+
+        .flow-step::after {
+            content: "→";
+            position: absolute;
+            right: -18px;
+            top: 42%;
+            color: #586575;
+            font-size: 20px;
+            z-index: 2;
+        }
+
+        .flow-step:last-child::after {
+            display: none;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #273241;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .step-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .step-detail {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .green {
+            color: var(--green);
+        }
+
+        .yellow {
+            color: var(--vault);
+        }
+
+        .blue {
+            color: var(--blue);
+        }
+
+        .purple {
+            color: var(--purple);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #071016;
+            background: var(--vault);
+        }
+
+        button.secondary {
+            background: #273241;
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 16px;
+            border-radius: 10px;
+            padding: 13px 15px;
+            background: #10161e;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .status.success {
+            border-color: rgba(53, 199, 89, 0.35);
+            color: var(--green);
+        }
+
+        .status.error {
+            border-color: rgba(255, 92, 92, 0.35);
+            color: var(--red);
+        }
+
+        .kv {
+            display: grid;
+            grid-template-columns: 210px minmax(0, 1fr);
+            gap: 10px 18px;
+            font-size: 13px;
+        }
+
+        .kv .key {
+            color: var(--muted);
+        }
+
+        .kv .value {
+            color: white;
+            overflow-wrap: anywhere;
+        }
+
+        .code {
+            background: #080c11;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            font-family:
+                ui-monospace,
+                SFMono-Regular,
+                Menlo,
+                Monaco,
+                Consolas,
+                monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            overflow-x: auto;
+        }
+
+        .lease {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .lease-box {
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .lease-label {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .lease-value {
+            font-size: 25px;
+            font-weight: 800;
+        }
+
+        .progress {
+            margin-top: 12px;
+            width: 100%;
+            height: 8px;
+            background: #252e39;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(
+                90deg,
+                var(--green),
+                var(--vault)
+            );
+            transition: width 0.5s linear;
+        }
+
+        .red {
+            color: var(--red);
+        }
+
+        .lease-detail {
+            margin-top: 20px;
+        }
+
+        .lease-note {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 16px;
+        }
+
+        @keyframes rotation-flash {
+            0% {
+                border-color: var(--vault);
+            }
+
+            100% {
+                border-color: var(--border);
+            }
+        }
+
+        .card.rotated {
+            animation: rotation-flash 2s ease-out;
+        }
+
+        .stale-note {
+            border: 1px solid rgba(255, 176, 0, 0.35);
+            background: rgba(255, 176, 0, 0.08);
+            color: var(--vault);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 11px;
+            background: rgba(53, 199, 89, 0.1);
+            color: var(--green);
+            border: 1px solid rgba(53, 199, 89, 0.25);
+        }
+
+        .role-map {
+            display: grid;
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            align-items: center;
+        }
+
+        .role-box {
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .role-box .label {
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 7px;
+        }
+
+        .role-box .name {
+            font-weight: 800;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .arrow {
+            text-align: center;
+            color: #697687;
+            font-size: 22px;
+        }
+
+        .result {
+            display: none;
+        }
+
+        .result.visible {
+            display: block;
+        }
+
+        @media (max-width: 900px) {
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card.full {
+                grid-column: auto;
+            }
+
+            .flow {
+                grid-template-columns: 1fr;
+            }
+
+            .flow-step::after {
+                content: "↓";
+                right: auto;
+                left: 50%;
+                top: auto;
+                bottom: -21px;
+            }
+
+            .flow-step:last-child::after {
+                display: none;
+            }
+
+            .role-map {
+                grid-template-columns: 1fr;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+
+            .container {
+                width: min(100% - 24px, 1200px);
+                padding-top: 22px;
+            }
+
+            .header {
+                flex-direction: column;
+            }
+
+            .kv {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+
+            .lease {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+
+        <div>
+            <h1>Vault Agent Injector DB Demo</h1>
+
+            <div class="subtitle">
+                Dynamic PostgreSQL credentials delivered to an
+                application through Vault Agent Injector.
+            </div>
+        </div>
+
+        <div class="badge">
+            Vault Agent Injector
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         FLOW
+         ====================================================== -->
+
+    <div class="card full">
+
+        <h2>Credential Lifecycle</h2>
+
+        <div class="card-description">
+            The application does not authenticate directly to Vault.
+            Vault Agent performs authentication and renders the
+            dynamic credential into the Pod.
+        </div>
+
+        <div class="flow">
+
+            <div class="flow-step">
+
+                <div class="step-number">1</div>
+
+                <div class="step-title">
+                    Kubernetes JWT
+                </div>
+
+                <div class="step-detail">
+                    ServiceAccount
+                    <strong class="blue">
+                        {{ kubernetes_service_account }}
+                    </strong>
+                    is used by Vault Agent.
+                </div>
+
+            </div>
+
+
+            <div class="flow-step">
+
+                <div class="step-number">2</div>
+
+                <div class="step-title">
+                    Vault Login
+                </div>
+
+                <div class="step-detail">
+                    Kubernetes Auth
+                    <strong class="yellow">
+                        {{ vault_auth_role }}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="flow-step">
+
+                <div class="step-number">3</div>
+
+                <div class="step-title">
+                    Dynamic Credential
+                </div>
+
+                <div class="step-detail">
+                    Vault Database role
+                    <strong class="purple">
+                        {{ vault_db_role }}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="flow-step">
+
+                <div class="step-number">4</div>
+
+                <div class="step-title">
+                    PostgreSQL
+                </div>
+
+                <div class="step-detail">
+                    Temporary PostgreSQL login is used for
+                    the query.
+                </div>
+
+            </div>
+
+
+            <div class="flow-step">
+
+                <div class="step-number">5</div>
+
+                <div class="step-title">
+                    Lease
+                </div>
+
+                <div class="step-detail">
+                    Credential is leased and managed by
+                    Vault Agent.
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         ROLE MAPPING
+         ====================================================== -->
+
+    <div class="card full">
+
+        <h2>Internal Role Mapping</h2>
+
+        <div class="card-description">
+            This is what makes the demo useful for explaining
+            least privilege to the customer.
+        </div>
+
+        <div class="role-map">
+
+            <div class="role-box">
+
+                <div class="label">
+                    Vault Kubernetes Role
+                </div>
+
+                <div class="name yellow">
+                    {{ vault_auth_role }}
+                </div>
+
+            </div>
+
+            <div class="arrow">
+                →
+            </div>
+
+            <div class="role-box">
+
+                <div class="label">
+                    Vault DB Role
+                </div>
+
+                <div class="name purple">
+                    {{ vault_db_role }}
+                </div>
+
+            </div>
+
+            <div class="role-box">
+
+                <div class="label">
+                    PostgreSQL Privilege Role
+                </div>
+
+                <div class="name green">
+                    demo_readonly
+                </div>
+
+            </div>
+
+            <div class="arrow">
+                →
+            </div>
+
+            <div class="role-box">
+
+                <div class="label">
+                    Generated DB User
+                </div>
+
+                <div
+                    class="name blue"
+                    id="generatedUser"
+                >
+                    Waiting for credential...
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         CONTROLS
+         ====================================================== -->
+
+    <div class="card">
+
+        <h2>Demo Controls</h2>
+
+        <div class="card-description">
+            Read the credential currently rendered by Vault Agent
+            and execute a PostgreSQL query.
+        </div>
+
+        <div class="button-row">
+
+            <button
+                id="readBtn"
+                onclick="runRead()"
+            >
+                Generate & Query
+            </button>
+
+            <button
+                class="secondary"
+                onclick="refreshStatus()"
+            >
+                Refresh
+            </button>
+
+        </div>
+
+        <div
+            id="status"
+            class="status"
+        >
+            Waiting for operation...
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         LEASE
+         ====================================================== -->
+
+    <div
+        class="card"
+        id="leaseCard"
+    >
+
+        <h2>Credential Lease</h2>
+
+        <div class="card-description">
+            Time until the PostgreSQL role below is revoked and
+            dropped. Anchored to when Vault issued the
+            credential — not to when this page was opened.
+        </div>
+
+        <div class="lease">
+
+            <div class="lease-box">
+
+                <div class="lease-label">
+                    This identity is destroyed in
+                </div>
+
+                <div
+                    class="lease-value green"
+                    id="leaseRemaining"
+                >
+                    —
+                </div>
+
+            </div>
+
+            <div class="lease-box">
+
+                <div class="lease-label">
+                    Age of this identity
+                </div>
+
+                <div
+                    class="lease-value"
+                    id="leaseAge"
+                >
+                    —
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="progress">
+
+            <div
+                id="progressBar"
+                class="progress-bar"
+            ></div>
+
+        </div>
+
+        <div class="kv lease-detail">
+
+            <div class="key">
+                issued at
+            </div>
+
+            <div
+                class="value"
+                id="issuedAt"
+            >
+                —
+            </div>
+
+            <div class="key">
+                revoked at
+            </div>
+
+            <div
+                class="value"
+                id="expiresAt"
+            >
+                —
+            </div>
+
+            <div class="key">
+                lease TTL / max TTL
+            </div>
+
+            <div
+                class="value"
+                id="ttlSummary"
+            >
+                —
+            </div>
+
+            <div class="key">
+                rotations seen on this page
+            </div>
+
+            <div
+                class="value yellow"
+                id="rotationCount"
+            >
+                0
+            </div>
+
+        </div>
+
+        <div class="lease-note">
+            Vault Agent renews this lease every
+            <span id="noteTtl">60</span>s. Renewal leaves the
+            rendered file byte-identical, so renewals are not
+            observable from inside the pod — what the bar tracks
+            is the credential's total permitted lifetime, after
+            which Vault revokes the lease and PostgreSQL drops
+            the role.
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         RESULT
+         ====================================================== -->
+
+    <div
+        id="result"
+        class="card full result"
+    >
+
+        <h2>PostgreSQL Identity</h2>
+
+        <div class="card-description">
+            This proves which database identity was actually
+            used by the application.
+        </div>
+
+        <div
+            class="stale-note"
+            id="staleNote"
+            hidden
+        >
+            The credential rotated after this query ran. The
+            identity below is what PostgreSQL reported at the
+            time — that role has since been revoked and dropped.
+            Run the query again to see the current one.
+        </div>
+
+        <div class="kv">
+
+            <div class="key">
+                current_user
+            </div>
+
+            <div
+                class="value green"
+                id="currentUser"
+            >
+                —
+            </div>
+
+            <div class="key">
+                session_user
+            </div>
+
+            <div
+                class="value"
+                id="sessionUser"
+            >
+                —
+            </div>
+
+            <div class="key">
+                database
+            </div>
+
+            <div
+                class="value"
+                id="database"
+            >
+                —
+            </div>
+
+            <div class="key">
+                PostgreSQL role memberships
+            </div>
+
+            <div
+                class="value"
+                id="memberships"
+            >
+                —
+            </div>
+
+            <div class="key">
+                generated username
+            </div>
+
+            <div
+                class="value blue"
+                id="credentialUser"
+            >
+                —
+            </div>
+
+            <div class="key">
+                lease ID
+            </div>
+
+            <div
+                class="value"
+                id="leaseId"
+            >
+                —
+            </div>
+
+            <div class="key">
+                rendered secret
+            </div>
+
+            <div
+                class="value"
+            >
+                {{ secret_file }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         ARCHITECTURE
+         ====================================================== -->
+
+    <div class="card full">
+
+        <h2>What the Application Actually Sees</h2>
+
+        <div class="card-description">
+            The application only reads a local file. Vault
+            authentication and credential lifecycle management
+            are handled outside the application process.
+        </div>
+
+        <div class="code">
+
+Application container
+        |
+        | read()
+        v
+/vault/secrets/db-creds.json
+        |
+        | rendered by
+        v
+Vault Agent sidecar
+        |
+        +--> Kubernetes Auth
+        |
+        +--> Vault Database Secrets Engine
+        |
+        +--> demo-agent-reader
+        |
+        +--> PostgreSQL
+        |
+        +--> lease management
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         CONFIGURATION
+         ====================================================== -->
+
+    <div class="card full">
+
+        <h2>Demo Configuration</h2>
+
+        <div class="kv">
+
+            <div class="key">
+                Kubernetes namespace
+            </div>
+
+            <div class="value">
+                {{ kubernetes_namespace }}
+            </div>
+
+            <div class="key">
+                ServiceAccount
+            </div>
+
+            <div class="value">
+                {{ kubernetes_service_account }}
+            </div>
+
+            <div class="key">
+                Vault namespace
+            </div>
+
+            <div class="value">
+                {{ vault_namespace }}
+            </div>
+
+            <div class="key">
+                Kubernetes Auth role
+            </div>
+
+            <div class="value yellow">
+                {{ vault_auth_role }}
+            </div>
+
+            <div class="key">
+                Database Secrets role
+            </div>
+
+            <div class="value purple">
+                {{ vault_db_role }}
+            </div>
+
+            <div class="key">
+                PostgreSQL privilege role
+            </div>
+
+            <div class="value green">
+                demo_readonly
+            </div>
+
+            <div class="key">
+                Injected file
+            </div>
+
+            <div class="value">
+                {{ secret_file }}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+let credentialTiming = null;
+let credentialUsername = null;
+let credentialSyncedAt = 0;
+let rotationCount = 0;
+
+
+/* ============================================================
+   Status
+   ============================================================ */
+
+async function refreshStatus() {
+
+    try {
+
+        const response = await fetch("/api/status");
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            setStatus(
+                "Vault Agent credential is not available yet.",
+                false
+            );
+
+            return;
+        }
+
+        document.getElementById(
+            "generatedUser"
+        ).textContent =
+            data.credential.username || "Waiting...";
+
+        applyTiming(
+            data.credential.username,
+            data.credential.lease_id,
+            data.credential.timing
+        );
+
+        setStatus(
+            "Vault Agent injected credential is available.",
+            true
+        );
+
+    } catch (error) {
+
+        setStatus(
+            error.message,
+            false
+        );
+    }
+}
+
+
+/* ============================================================
+   Read / Query
+   ============================================================ */
+
+async function runRead() {
+
+    const button =
+        document.getElementById("readBtn");
+
+    button.disabled = true;
+
+    setStatus(
+        "Reading Vault Agent credential and querying PostgreSQL...",
+        true
+    );
+
+    try {
+
+        const response = await fetch(
+            "/api/read",
+            {
+                method: "POST"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            throw new Error(
+                data.error || "Operation failed"
+            );
+        }
+
+
+        /*
+         * Credential
+         */
+
+        const lifecycle =
+            data.lifecycle;
+
+        document.getElementById(
+            "generatedUser"
+        ).textContent =
+            lifecycle.generated_username;
+
+
+        document.getElementById(
+            "credentialUser"
+        ).textContent =
+            lifecycle.generated_username;
+
+
+        document.getElementById(
+            "leaseId"
+        ).textContent =
+            lifecycle.lease_id || "—";
+
+
+        /*
+         * Database
+         */
+
+        const db =
+            data.database;
+
+        document.getElementById(
+            "currentUser"
+        ).textContent =
+            db.current_user;
+
+
+        document.getElementById(
+            "sessionUser"
+        ).textContent =
+            db.session_user;
+
+
+        document.getElementById(
+            "database"
+        ).textContent =
+            db.database;
+
+
+        document.getElementById(
+            "memberships"
+        ).textContent =
+            db.role_memberships.length
+                ? db.role_memberships.join(", ")
+                : "none";
+
+
+        /*
+         * Lease
+         */
+
+        applyTiming(
+            lifecycle.generated_username,
+            lifecycle.lease_id,
+            lifecycle.timing
+        );
+
+
+        /*
+         * This query is fresh, so whatever staleness a previous
+         * rotation flagged no longer applies.
+         */
+
+        document.getElementById(
+            "staleNote"
+        ).hidden = true;
+
+
+        document
+            .getElementById("result")
+            .classList.add("visible");
+
+
+        setStatus(
+            "Query successful — PostgreSQL confirmed the Vault-generated identity.",
+            true
+        );
+
+    } catch (error) {
+
+        setStatus(
+            "Operation failed: " + error.message,
+            false
+        );
+
+    } finally {
+
+        button.disabled = false;
+    }
+}
+
+
+/* ============================================================
+   Status display
+   ============================================================ */
+
+function setStatus(message, success) {
+
+    const element =
+        document.getElementById("status");
+
+    element.textContent =
+        message;
+
+    element.className =
+        "status " +
+        (success ? "success" : "error");
+}
+
+
+/* ============================================================
+   Lease timer
+   ============================================================ */
+
+/*
+ * The injected file's lease_duration is the renewal interval,
+ * not the credential's lifetime, and it does not change as the
+ * lease is renewed. Remaining life is therefore computed
+ * server-side against max_ttl from the credential's issue time
+ * -- see credential_timing() in app.py -- and re-synced on
+ * every poll. Between polls the browser interpolates locally,
+ * so the countdown stays anchored to the cluster's clock
+ * rather than the viewer's.
+ */
+
+function applyTiming(username, leaseId, timing) {
+
+    if (!timing) {
+        return;
+    }
+
+    if (
+        credentialUsername &&
+        username !== credentialUsername
+    ) {
+
+        rotationCount += 1;
+
+        document.getElementById(
+            "rotationCount"
+        ).textContent = rotationCount;
+
+        flashRotation();
+
+        markIdentityStale();
+    }
+
+    credentialUsername = username;
+    credentialTiming = timing;
+    credentialSyncedAt = Date.now();
+
+    /*
+     * Credential facts come from the injected file, so every
+     * poll can refresh them -- these must not go stale while
+     * the rotation counter beside them is ticking.
+     */
+
+    document.getElementById(
+        "generatedUser"
+    ).textContent =
+        username || "Waiting for credential...";
+
+    document.getElementById(
+        "credentialUser"
+    ).textContent =
+        username || "—";
+
+    document.getElementById(
+        "leaseId"
+    ).textContent =
+        leaseId || "—";
+
+    document.getElementById(
+        "issuedAt"
+    ).textContent = timing.issued_at_iso;
+
+    document.getElementById(
+        "expiresAt"
+    ).textContent = timing.expires_at_iso;
+
+    document.getElementById(
+        "ttlSummary"
+    ).textContent =
+        formatDuration(timing.lease_ttl_seconds) +
+        " / " +
+        formatDuration(timing.max_ttl_seconds);
+
+    document.getElementById(
+        "noteTtl"
+    ).textContent = timing.lease_ttl_seconds;
+
+    renderLease();
+}
+
+
+/*
+ * The PostgreSQL Identity panel is not credential data -- it is
+ * what the database reported when a query actually ran. It
+ * cannot be refreshed from a poll without inventing a query
+ * that never happened, so on rotation it is marked stale
+ * instead. The role it names no longer exists.
+ */
+
+function markIdentityStale() {
+
+    const result =
+        document.getElementById("result");
+
+    if (!result.classList.contains("visible")) {
+        return;
+    }
+
+    document.getElementById(
+        "staleNote"
+    ).hidden = false;
+}
+
+
+function flashRotation() {
+
+    const card =
+        document.getElementById("leaseCard");
+
+    card.classList.remove("rotated");
+
+    /* Force reflow so the animation restarts. */
+    void card.offsetWidth;
+
+    card.classList.add("rotated");
+}
+
+
+function renderLease() {
+
+    if (!credentialTiming) {
+        return;
+    }
+
+    const drift =
+        (Date.now() - credentialSyncedAt) / 1000;
+
+    const remaining =
+        Math.max(
+            0,
+            credentialTiming.remaining_seconds - drift
+        );
+
+    const age =
+        credentialTiming.age_seconds + drift;
+
+    const maxTtl =
+        credentialTiming.max_ttl_seconds;
+
+    const remainingLabel =
+        document.getElementById("leaseRemaining");
+
+    remainingLabel.textContent =
+        remaining > 0
+            ? formatDuration(Math.ceil(remaining))
+            : "revoked — awaiting replacement";
+
+    remainingLabel.className =
+        "lease-value " +
+        (
+            remaining <= 0
+                ? "red"
+                : remaining <= maxTtl * 0.2
+                    ? "yellow"
+                    : "green"
+        );
+
+    document.getElementById(
+        "leaseAge"
+    ).textContent =
+        formatDuration(Math.floor(age));
+
+    const percentage =
+        maxTtl > 0
+            ? (remaining / maxTtl) * 100
+            : 0;
+
+    document.getElementById(
+        "progressBar"
+    ).style.width =
+        percentage + "%";
+}
+
+
+async function pollCredential() {
+
+    try {
+
+        const response =
+            await fetch("/api/credential");
+
+        const data =
+            await response.json();
+
+        if (!data.success) {
+            return;
+        }
+
+        applyTiming(
+            data.username,
+            data.lease_id,
+            data.timing
+        );
+
+    } catch (error) {
+
+        /*
+         * Keep the last known countdown on screen rather than
+         * blanking the card on a transient fetch failure.
+         */
+    }
+}
+
+
+function formatDuration(seconds) {
+
+    seconds =
+        Math.max(
+            0,
+            Math.floor(seconds)
+        );
+
+    const minutes =
+        Math.floor(seconds / 60);
+
+    const secs =
+        seconds % 60;
+
+    if (minutes > 0) {
+
+        return (
+            minutes +
+            "m " +
+            String(secs).padStart(2, "0") +
+            "s"
+        );
+    }
+
+    return secs + "s";
+}
+
+
+/* ============================================================
+   Initial status
+   ============================================================ */
+
+refreshStatus();
+
+pollCredential();
+
+/*
+ * Poll often enough that a rotation is caught within a couple
+ * of seconds of happening -- that moment is the point of the
+ * demo. Each poll is a single file read in the pod.
+ */
+setInterval(
+    pollCredential,
+    2000
+);
+
+setInterval(
+    renderLease,
+    250
+);
+
+</script>
+
+</body>
+</html>
